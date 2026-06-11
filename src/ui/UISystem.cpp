@@ -29,6 +29,8 @@ void UISystem::checkIfClicked(double x, double y, int action)
     {
        widget->handleClick(x, y, action); /* stub we check all clicks so can be overhead*/
 
+       if (widgets.find(id) == widgets.end())  /* if widget delete him self (button widget for example) */
+            break;
     //    if (widget->handleClick(x, y, action))
     //         return;
     }
