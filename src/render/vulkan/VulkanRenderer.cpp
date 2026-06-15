@@ -6,7 +6,6 @@ namespace Optikos
 VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
     : m_window(window), m_shader(std::move(shader))
 {
-    // 1. Заполняем визитную карточку приложения
     VkApplicationInfo appInfo{};
     appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName   = "Optikos";
@@ -33,12 +32,28 @@ VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
     createInfo.ppEnabledExtensionNames = extensions.data();
     createInfo.enabledLayerCount       = 0;
 
-/* TODO: add check with vkEnumerateInstanceLayerProperties if there is VK_LAYER_KHRONOS_validation
- */
+    /* TODO: add check with vkEnumerateInstanceLayerProperties if there is
+     * VK_LAYER_KHRONOS_validation
+     */
+    uint32_t layerCount = 0;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    LOG_INFO("Available Vulkan layers on this system:", "log");
+    for (const auto& layer : availableLayers) LOG_INFO(layer.layerName, "log");
+    LOG_INFO("END", "log");
+
+    createInfo.enabledLayerCount = 0;
+
 #ifdef ENABLE_VULKAN_DEBUG_LAYER
     const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
     createInfo.enabledLayerCount   = 1;
     createInfo.ppEnabledLayerNames = validationLayers;
+    LOG_INFO("[VulkanRenderer] Validation layer ENABLED", "log");
+#else
+    LOG_INFO("[VulkanRenderer] Validation layer DISABLED", "log");
 #endif
 
     VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
@@ -59,6 +74,7 @@ VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
 
     LOG_INFO("Available Vulkan extensions on this system:", "log");
     for (const auto& extension : availableExtensions) LOG_INFO(extension.extensionName, "log");
+    LOG_INFO("END", "log");
 }
 
 VulkanRenderer::~VulkanRenderer()
