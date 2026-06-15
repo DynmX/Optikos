@@ -106,6 +106,12 @@ function(optikos_copy_resources TARGET)
     )
 endfunction()
 
+option(ENABLE_VULKAN_DEBUG_LAYER "Enable Vulkan validation layers" OFF)
+
+if(ENABLE_VULKAN_DEBUG_LAYER)
+    target_compile_definitions(Optikos PRIVATE ENABLE_VULKAN_DEBUG_LAYER)
+endif()
+
 option(DEV "Enable strict developer warnings" OFF)
 if(DEV)
     target_compile_options(Optikos PRIVATE

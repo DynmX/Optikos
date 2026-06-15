@@ -15,6 +15,8 @@ VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
     appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion         = VK_API_VERSION_1_3;
 
+    LOG_INFO("Vulkan version: " + VK_API_VERSION_1_3, "log");
+
     auto extensions = m_window->getVulkanExtensions();
 
     VkInstanceCreateInfo createInfo{};
@@ -30,6 +32,13 @@ VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
     createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     createInfo.enabledLayerCount       = 0;
+
+/* TODO: add check with vkEnumerateInstanceLayerProperties if there is VK_LAYER_KHRONOS_validation */
+#ifdef ENABLE_VULKAN_DEBUG_LAYER
+    const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
+    createInfo.enabledLayerCount   = 1;
+    createInfo.ppEnabledLayerNames = validationLayers;
+#endif
 
     VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
 
