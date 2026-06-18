@@ -11,6 +11,7 @@
 
 #ifdef OPTIKOS_BACKEND_VULKAN
 #include "render/vulkan/VulkanRenderer.hpp"
+#include "shader/SPIRV/VkShader.hpp"
 #endif
 
 #ifdef OPTIKOS_INPUT_GLWF
@@ -46,7 +47,8 @@ Optikos::Optikos(std::string_view title, unsigned int width, unsigned int height
 #endif
 
 #ifdef OPTIKOS_BACKEND_VULKAN
-    m_renderer = std::make_unique<VulkanRenderer>(m_window.get(), nullptr); /* TODO: nullptr !!! */
+    auto shader = std::make_unique<VkShader>();
+    m_renderer  = std::make_unique<VulkanRenderer>(m_window.get(), std::move(shader));
 #endif
 
 #ifdef OPTIKOS_INPUT_GLWF

@@ -13,6 +13,7 @@ VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
     createLogicalDevice();
     createSwapChain();
     createImageViews();
+    createGraphicsPipeline();
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -383,6 +384,40 @@ void VulkanRenderer::createImageViews()
     }
 }
 
+void VulkanRenderer::createGraphicsPipeline()
+{
+#ifndef OPTIKOS_SHADER_PATH
+#define OPTIKOS_SHADER_PATH "res/shaders/"
+#endif
+
+    auto vertShaderCode =
+        m_shader->readFile(std::string(OPTIKOS_SHADER_PATH) + "VKshader.vert.spv");
+    auto fragShaderCode =
+        m_shader->readFile(std::string(OPTIKOS_SHADER_PATH) + "VKshader.frag.spv");
+
+    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage  = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName  = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.pName  = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+    LOG_TRACE("[VulkanRenderer] Shader modules successfully created and staged.", "log");
+
+    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
+}
+
 std::vector<const char*> VulkanRenderer::getRequiredExtensions()
 {
     auto extensions = m_window->getVulkanExtensions();
@@ -706,6 +741,23 @@ VkExtent2D VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 
         return actualExtent;
     }
+}
+
+VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
+        LOG_ERROR("[createShaderModule] failed to create shader module", "log");
+        throw std::runtime_error("failed to create shader module!");
+    }
+
+    return shaderModule;
 }
 
 }  // namespace Optikos
