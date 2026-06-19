@@ -1,13 +1,12 @@
-#ifdef OPTIKOS_BACKEND_OPENGL
-#include "render/opengl/OpenGLRenderer.hpp"
-#include "shader/GLSL/GLShader.hpp"
-#endif
-
 #include "optikos.hpp"
-#include <memory>
 
 #ifdef OPTIKOS_PLATFORM_GLWF
 #include "platform/glfw/GLFWWindow.hpp"
+#endif
+
+#ifdef OPTIKOS_BACKEND_OPENGL
+#include "render/opengl/OpenGLRenderer.hpp"
+#include "shader/GLSL/GLShader.hpp"
 #endif
 
 #ifdef OPTIKOS_BACKEND_VULKAN

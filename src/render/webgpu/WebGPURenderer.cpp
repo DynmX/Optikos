@@ -38,10 +38,8 @@ struct RenderUniform
 WebGPURenderer::~WebGPURenderer() = default;
 
 WebGPURenderer::WebGPURenderer(IWindow* window, std::unique_ptr<IShader> shader)
+    : m_window(window), m_shader(std::move(shader))
 {
-    m_window = window;
-    m_shader = std::move(shader);
-
     createInstance();
     createSurface();
     createAdapter();
@@ -198,9 +196,9 @@ void WebGPURenderer::flush()
                 allIndices.push_back(idx + indexOffset);
             }
 
-            batchIndexCount += cmd.indices.size();
-            indexOffset += cmd.vertices.size();
-            currentIndexOffset += cmd.indices.size();
+            batchIndexCount += static_cast<uint32_t>(cmd.indices.size());
+            indexOffset += static_cast<uint32_t>(cmd.vertices.size());
+            currentIndexOffset += static_cast<uint32_t>(cmd.indices.size());
             nextBatchIdx++;
         }
 

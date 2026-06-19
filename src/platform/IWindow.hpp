@@ -8,7 +8,6 @@
 
 #include "ui/UISystem.hpp"
 #include "utilities/color.hpp"
-#include <GLFW/glfw3.h>
 
 #ifdef OPTIKOS_BACKEND_VULKAN
 #include <vulkan/vulkan.h>

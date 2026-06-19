@@ -171,16 +171,3 @@ else()
         $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>
     )
 endif()
-
-
-add_executable(TestApp main.cpp)
-
-target_link_libraries(TestApp PRIVATE Optikos::Optikos glfw)
-
-if(OPTIKOS_RENDERER STREQUAL "WEBGPU")
-    target_link_libraries(TestApp PRIVATE 
-        dawn::webgpu_dawn
-    )
-endif()
-
-optikos_copy_resources(TestApp)
