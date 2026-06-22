@@ -4,6 +4,8 @@
 #include <vulkan/vulkan.h>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <limits>
@@ -26,7 +28,20 @@
 
 namespace Optikos
 {
-int constexpr DEFAULT_SHADER = 0;
+int constexpr DEFAULT_SHADER       = 0;
+int constexpr NO_TEXTURE           = 0;
+int constexpr DEFAULT_TEXTURE_UNIT = 0;
+
+int constexpr POSITION_SIZE = 2;
+int constexpr COLOR_SIZE    = 4;
+int constexpr UV_SIZE       = 2;
+int constexpr WH_SIZE       = 4;
+int constexpr VERTEX_SIZE   = sizeof(Vertex);
+
+size_t constexpr POSITION_POS = offsetof(Vertex, x);
+size_t constexpr COLOR_POS    = offsetof(Vertex, r);
+size_t constexpr UV_POS       = offsetof(Vertex, u);
+size_t constexpr WH_POS       = offsetof(Vertex, fw);
 
 constexpr const char* APP_NAME    = "Optikos";
 constexpr const char* ENGINE_NAME = "No Engine";
@@ -58,6 +73,55 @@ class VulkanRenderer : public IRenderer
     IRenderQueue& getRenderQueue() override;
 
    private:
+    struct Batch
+    {
+        // unsigned int              VAO         = 0;
+        // unsigned int              VBO         = 0;
+        // unsigned int              IBO         = 0;
+        // unsigned int              shaderId    = 0;
+        // unsigned int              textureId   = 0;
+        // int                       textureMode = 0;
+        std::vector<Vertex>       vertices;
+        std::vector<unsigned int> indices;
+
+        VkBuffer       m_vertexBuffer       = VK_NULL_HANDLE;
+        VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
+
+        void clear()
+        {
+            vertices.clear();
+            indices.clear();
+        }
+
+        static VkVertexInputBindingDescription getBindingDescription()
+        {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding   = 0;
+            bindingDescription.stride    = sizeof(Vertex);
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+            return bindingDescription;
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+        {
+            std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+            attributeDescriptions[0].binding  = 0;
+            attributeDescriptions[0].location = 0;
+            attributeDescriptions[0].format   = VK_FORMAT_R32G32_SFLOAT;
+            attributeDescriptions[0].offset   = POSITION_POS;
+
+            attributeDescriptions[1].binding  = 0;
+            attributeDescriptions[1].location = 1;
+            attributeDescriptions[1].format   = VK_FORMAT_R8G8B8A8_UNORM;
+            attributeDescriptions[1].offset   = COLOR_POS;
+
+            return attributeDescriptions;
+        }
+    };
+
+    Batch m_currentBatch;
+
     struct QueueFamilyIndices
     {
         std::optional<uint32_t> graphicsFamily;
@@ -149,6 +213,7 @@ class VulkanRenderer : public IRenderer
     void createCommandPool();
     void createCommandBuffers();
     void createSyncObjects();
+    void createVertexBuffer();
 
     void recreateSwapChain();
     void cleanupSwapChain();
@@ -183,6 +248,8 @@ class VulkanRenderer : public IRenderer
     VkShaderModule createShaderModule(const std::vector<char>& code);
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void drawFrame();
 };

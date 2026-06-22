@@ -19,6 +19,14 @@ VulkanRenderer::VulkanRenderer(IWindow* window, std::unique_ptr<IShader> shader)
     createCommandPool();
     createCommandBuffers();
     createSyncObjects();
+
+    m_currentBatch.vertices = {
+        {0.0f, -0.5f, 255, 140, 0, 255, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+        {0.5f, 0.5f, 255, 140, 0, 255, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+        {-0.5f, 0.5f, 255, 140, 0, 255, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+    };
+
+    createVertexBuffer();
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -34,6 +42,12 @@ VulkanRenderer::~VulkanRenderer()
     }
     if (m_commandPool) vkDestroyCommandPool(m_device, m_commandPool, nullptr);
     cleanupSwapChain();
+
+    if (m_currentBatch.m_vertexBuffer)
+        vkDestroyBuffer(m_device, m_currentBatch.m_vertexBuffer, nullptr);
+
+    if (m_currentBatch.m_vertexBufferMemory)
+        vkFreeMemory(m_device, m_currentBatch.m_vertexBufferMemory, nullptr);
 
     if (m_graphicsPipeline) vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
     if (m_renderPass) vkDestroyRenderPass(m_device, m_renderPass, nullptr);
@@ -501,6 +515,15 @@ void VulkanRenderer::createGraphicsPipeline()
     vertexInputInfo.vertexAttributeDescriptionCount = 0;
     vertexInputInfo.pVertexAttributeDescriptions    = nullptr;
 
+    auto bindingDescription    = Batch::getBindingDescription();
+    auto attributeDescriptions = Batch::getAttributeDescriptions();
+
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount =
+        static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions   = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -705,6 +728,47 @@ void VulkanRenderer::createSyncObjects()
     }
 
     LOG_TRACE("[createSyncObjects] synchronization objects successfully created", "log");
+}
+
+void VulkanRenderer::createVertexBuffer()
+{
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size        = VERTEX_SIZE * m_currentBatch.vertices.size();
+    bufferInfo.usage       = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_currentBatch.m_vertexBuffer) !=
+        VK_SUCCESS)
+    {
+        LOG_ERROR("[createVertexBuffer] failed to create vertex buffer", "log");
+        throw std::runtime_error("failed to create vertex buffer!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_device, m_currentBatch.m_vertexBuffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType          = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex =
+        findMemoryType(memRequirements.memoryTypeBits,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    if (vkAllocateMemory(m_device, &allocInfo, nullptr, &m_currentBatch.m_vertexBufferMemory) !=
+        VK_SUCCESS)
+    {
+        LOG_ERROR("[createVertexBuffer] failed to allocate vertex buffer memory", "log");
+        throw std::runtime_error("failed to allocate vertex buffer memory!");
+    }
+
+    vkBindBufferMemory(m_device, m_currentBatch.m_vertexBuffer, m_currentBatch.m_vertexBufferMemory,
+                       0);
+
+    void* data;
+    vkMapMemory(m_device, m_currentBatch.m_vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+    memcpy(data, m_currentBatch.vertices.data(), (size_t) bufferInfo.size);
+    vkUnmapMemory(m_device, m_currentBatch.m_vertexBufferMemory);
 }
 
 void VulkanRenderer::recreateSwapChain()
@@ -1094,21 +1158,17 @@ VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code)
 void VulkanRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags            = 0;
-    beginInfo.pInheritanceInfo = nullptr;
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
     {
-        LOG_ERROR("[recordCommandBuffer] failed to begin recording command buffer!", "log");
         throw std::runtime_error("failed to begin recording command buffer!");
     }
 
     VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass  = m_renderPass;
-    renderPassInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
-
+    renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass        = m_renderPass;
+    renderPassInfo.framebuffer       = m_swapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_swapChainExtent;
 
@@ -1123,8 +1183,8 @@ void VulkanRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     VkViewport viewport{};
     viewport.x        = 0.0f;
     viewport.y        = 0.0f;
-    viewport.width    = static_cast<float>(m_swapChainExtent.width);
-    viewport.height   = static_cast<float>(m_swapChainExtent.height);
+    viewport.width    = (float) m_swapChainExtent.width;
+    viewport.height   = (float) m_swapChainExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -1134,15 +1194,32 @@ void VulkanRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     scissor.extent = m_swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    VkBuffer     vertexBuffers[] = {m_currentBatch.m_vertexBuffer};
+    VkDeviceSize offsets[]       = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdDraw(commandBuffer, static_cast<uint32_t>(m_currentBatch.vertices.size()), 1, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
     {
-        LOG_ERROR("[recordCommandBuffer] failed to record command buffer!", "log");
         throw std::runtime_error("failed to record command buffer!");
     }
+}
+
+uint32_t VulkanRenderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(Selected().m_physDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        if (typeFilter & (1 << i) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            return i;
+
+    LOG_ERROR("failed to find suitable memory type", "log");
+    throw std::runtime_error("failed to find suitable memory type!");
 }
 
 void VulkanRenderer::drawFrame()
