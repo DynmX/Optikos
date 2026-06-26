@@ -12,7 +12,7 @@ layout(push_constant) uniform PushBlock {
     int uHasTexture;
 } push;
 
-// layout(binding = 0) uniform sampler2D uTexture;
+layout(binding = 0) uniform sampler2D uTexture;
 
 void main()
 {
@@ -25,12 +25,12 @@ void main()
 
     if (push.uHasTexture == 2)
     {
-        // color = texture(uTexture, v_TexCoord);
+        color = texture(uTexture, v_TexCoord);
     }
     else if (push.uHasTexture == 1)
     {
-        // float sampledAlpha = texture(uTexture, v_TexCoord).r;
-        // color = vec4(fsColor.rgb, fsColor.a * sampledAlpha);
+        float sampledAlpha = texture(uTexture, v_TexCoord).r;
+        color = vec4(fsColor.rgb, fsColor.a * sampledAlpha);
     }
     else
     {

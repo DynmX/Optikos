@@ -75,8 +75,14 @@ class Optikos
         m_window->setWindowShouldClose(flag);
     }
 
-    inline void close() {
+    inline void close()
+    {
         m_renderer->waitIdle();
+    }
+
+    inline IRenderer* getRenderer()
+    {
+        return m_renderer.get();
     }
 
    private:

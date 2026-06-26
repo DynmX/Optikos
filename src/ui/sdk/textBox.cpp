@@ -1,5 +1,7 @@
 #include "ui/sdk/textBox.hpp"
 
+// TODO: VERY IMPORTANT main problem of some down in fps because of vector with symbols
+
 namespace Optikos
 {
 TextBox::TextBox(uint32_t width, uint32_t height, Vec2 position, Color bgColor, Color textColor)
@@ -104,7 +106,6 @@ bool TextBox::handleClick(double x, double y, int action)
 {
     if (m_isClickable && isInside(x, y))
     {
-
         handleEvent();
         if (m_focused && action == LEFT_CLICK) handleCursor(x, y);
         return true;

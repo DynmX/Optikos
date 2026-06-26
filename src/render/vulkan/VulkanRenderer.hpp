@@ -149,6 +149,17 @@ class VulkanRenderer : public IRenderer
         }
     };
 
+    struct Texture
+    {
+        VkImage         image         = VK_NULL_HANDLE;
+        VkDeviceMemory  imageMemory   = VK_NULL_HANDLE;
+        VkImageView     imageView     = VK_NULL_HANDLE;
+        VkSampler       sampler       = VK_NULL_HANDLE;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        uint32_t        width = 0, height = 0;
+        bool            isRenderTarget = false;
+    };
+
     // TODO: can be padding
     // https://docs.vulkan.org/guide/latest/push_constants.html#:~:text=The%20following%20diagram%20provides%20a%20visualization%20of%20how%20push%20constant%20offsets%20work.
     struct PushConstants
@@ -230,6 +241,9 @@ class VulkanRenderer : public IRenderer
     VkCommandPool                m_commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> m_commandBuffers;
 
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+    VkSampler        m_defaultSampler = VK_NULL_HANDLE;
+
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
     std::vector<VkFence>     m_inFlightFences;
@@ -244,7 +258,8 @@ class VulkanRenderer : public IRenderer
     std::unordered_map<std::string, unsigned int> m_shaderCache;
     unsigned int                                  m_defaultShader = DEFAULT_SHADER;
 
-    std::unordered_map<std::string, unsigned int> m_textureCache;
+    std::unordered_map<unsigned int, Texture> m_textures;
+    unsigned int                              m_nextTextureId = 1;
 
     void createInstance();
     void setupDebugMessenger();
@@ -291,10 +306,16 @@ class VulkanRenderer : public IRenderer
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
     VkShaderModule createShaderModule(const std::vector<char>& code);
+    VkImageView    createImageView(VkImage image, VkFormat format);
+    VkSampler      getOrCreateDefaultSampler();
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image,
+                     VkDeviceMemory& imageMemory);
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
                       VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -308,6 +329,12 @@ class VulkanRenderer : public IRenderer
     void renderBatch(Batch& batch, VkCommandBuffer commandBuffer);
 
     void cleanupFrame(uint64_t finishedFrame);
+
+    VkCommandBuffer beginSingleTimeCommands();
+    void            endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void            transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+                                          VkImageLayout newLayout);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
     void drawFrame();
 };
