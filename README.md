@@ -42,9 +42,9 @@ int main()
 | Linux    | ✅   | ❌  |
 | macOS    | ✅   | ❌  |
 
-|          | OpenGL | Vulkan | DirectX |
-|----------|--------|--------|---------|
-| Renderer | ✅     | ❌     | ❌      |
+|          | OpenGL | Vulkan | DirectX |  WebGPU |
+|----------|--------|--------|---------|---------|
+| Renderer | ✅     | ✅     | ❌     | ❌     |
 
 ---
 
