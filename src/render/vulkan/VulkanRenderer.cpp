@@ -1,5 +1,7 @@
 #include "VulkanRenderer.hpp"
 
+#include <tracy/Tracy.hpp>
+
 namespace Optikos
 {
 
@@ -869,6 +871,8 @@ void VulkanRenderer::submit(DrawCommand&& command)
 
 void VulkanRenderer::flush()
 {
+    ZoneScopedN("VulkanRenderer::flush");
+
     auto& commands = m_renderQueue.getMutableCommands();
     if (commands.empty()) return;
 
@@ -1343,6 +1347,8 @@ VkSurfaceFormatKHR VulkanRenderer::chooseSwapSurfaceFormat(
 VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
+    // return VK_PRESENT_MODE_FIFO_KHR; VSYNC
+
     for (const auto& availablePresentMode : availablePresentModes)
     {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
@@ -1586,6 +1592,8 @@ void VulkanRenderer::ensureBufferCapacity(VkBuffer& buffer, VkDeviceMemory& memo
 
 void VulkanRenderer::renderBatch(Batch& batch, VkCommandBuffer commandBuffer)
 {
+    ZoneScopedN("VulkanRenderer::renderBatch");
+
     if (batch.vertices.empty() || batch.indices.empty()) return;
 
     VkDeviceSize vSize = batch.vertices.size() * sizeof(Vertex);
@@ -1783,10 +1791,11 @@ void VulkanRenderer::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t 
 
 void VulkanRenderer::drawFrame()
 {
+    ZoneScopedN("VulkanRenderer::drawFrame");
     if (m_width <= 0 || m_height <= 0)
     {
-        m_width  = m_window->getWidth();
-        m_height = m_window->getHeight();
+        // m_width  = m_window->getWidth();
+        // m_height = m_window->getHeight();
         return;
     }
 
@@ -1794,8 +1803,8 @@ void VulkanRenderer::drawFrame()
     {
         m_framebufferResized = false;
         recreateSwapChain();
-        vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
-        recordCommandBuffer(m_commandBuffers[m_currentFrame], m_currentFrame);
+        // vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
+        // recordCommandBuffer(m_commandBuffers[m_currentFrame], m_currentFrame);
     }
 
     vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);

@@ -1,5 +1,7 @@
 #include "ui/text/TextFont.hpp"
 
+#include <tracy/Tracy.hpp>
+
 namespace Optikos
 {
 TextFont::TextFont()
@@ -122,7 +124,9 @@ void TextFont::generateAtlas(std::string fontName, float fontSize)
         if ((int) bitmap.rows > maxRowHeight) maxRowHeight = (int) bitmap.rows;
         xpos += bitmap.width + 1;
     }
-    LOG_TRACE("New font atlas created with name: " + fontName + " and size: " + std::to_string(fontSize), "log");
+    LOG_TRACE(
+        "New font atlas created with name: " + fontName + " and size: " + std::to_string(fontSize),
+        "log");
 }
 
 RenderData TextFont::generateTextQuads(const std::string& text, const Vec2& position,
@@ -130,7 +134,11 @@ RenderData TextFont::generateTextQuads(const std::string& text, const Vec2& posi
                                        const Clip& clip, const std::string& fontName,
                                        const Color& textColor)
 {
+    ZoneScopedN("TextFont::generateTextQuads");
+
     RenderData data;
+    data.vertices.reserve(text.size() * 4);
+    data.indices.reserve(text.size() * 6);
 
     auto it = m_Atlases.find(fontName);
     if (it == m_Atlases.end())
@@ -184,22 +192,21 @@ RenderData TextFont::generateTextQuads(const std::string& text, const Vec2& posi
         float u2 = u1 + static_cast<float>(ch.width) / atlas.atlasSize;
         float v2 = v1 + static_cast<float>(ch.height) / atlas.atlasSize;
 
-        data.vertices.insert(data.vertices.end(),
-                             Vertex{x, y, textColor.r, textColor.g, textColor.b, textColor.a, u1,
-                                    v1, clip.xMin, clip.xMax, clip.yMin, clip.yMax});
-        data.vertices.insert(data.vertices.end(),
-                             Vertex{x + w, y, textColor.r, textColor.g, textColor.b, textColor.a,
-                                    u2, v1, clip.xMin, clip.xMax, clip.yMin, clip.yMax});
-        data.vertices.insert(data.vertices.end(),
-                             Vertex{x, y + h, textColor.r, textColor.g, textColor.b, textColor.a,
-                                    u1, v2, clip.xMin, clip.xMax, clip.yMin, clip.yMax});
-        data.vertices.insert(
-            data.vertices.end(),
-            Vertex{x + w, y + h, textColor.r, textColor.g, textColor.b, textColor.a, u2, v2,
-                   clip.xMin, clip.xMax, clip.yMin, clip.yMax});
+        // ZoneScopedN("insert");
+        // TODO: main problem of label overhead when too much insert calls.
+
+        data.vertices.emplace_back(x, y, textColor.r, textColor.g, textColor.b, textColor.a, u1, v1,
+                                   clip.xMin, clip.xMax, clip.yMin, clip.yMax);
+        data.vertices.emplace_back(x + w, y, textColor.r, textColor.g, textColor.b, textColor.a, u2,
+                                   v1, clip.xMin, clip.xMax, clip.yMin, clip.yMax);
+        data.vertices.emplace_back(x, y + h, textColor.r, textColor.g, textColor.b, textColor.a, u1,
+                                   v2, clip.xMin, clip.xMax, clip.yMin, clip.yMax);
+        data.vertices.emplace_back(x + w, y + h, textColor.r, textColor.g, textColor.b, textColor.a,
+                                   u2, v2, clip.xMin, clip.xMax, clip.yMin, clip.yMax);
 
         data.indices.insert(data.indices.end(), {offset + 0, offset + 1, offset + 2, offset + 1,
                                                  offset + 3, offset + 2});
+
         offset += 4;
 
         xpos += ch.advance;

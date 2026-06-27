@@ -1,5 +1,7 @@
 #include "ui/UISystem.hpp"
 
+#include <tracy/Tracy.hpp>
+
 namespace Optikos
 {
 bool UISystem::rem_widget(const uint32_t idx)
@@ -17,6 +19,8 @@ bool UISystem::rem_widget(const uint32_t idx)
 
 void UISystem::render(Optikos::IRenderQueue& renderQueue)
 {
+    ZoneScopedN("UISystem::render");
+
     for (const auto& [id, widget] : widgets)
     {
         widget->render(renderQueue);
@@ -27,12 +31,13 @@ void UISystem::checkIfClicked(double x, double y, int action)
 {
     for (const auto& [id, widget] : widgets)
     {
-       widget->handleClick(x, y, action); /* stub we check all clicks so can be overhead*/
+        widget->handleClick(x, y, action); /* stub we check all clicks so can be overhead*/
 
-       if (widgets.find(id) == widgets.end())  /* if widget delete him self (button widget for example) */
+        if (widgets.find(id) ==
+            widgets.end()) /* if widget delete him self (button widget for example) */
             break;
-    //    if (widget->handleClick(x, y, action))
-    //         return;
+        //    if (widget->handleClick(x, y, action))
+        //         return;
     }
 }
 
@@ -92,7 +97,7 @@ void UISystem::passInput(unsigned int codepoint)
     for (const auto& [id, widget] : widgets)
     {
         if (!widget->wantsGetInput()) continue;
-        
+
         widget->passInput(codepoint);
     }
 }

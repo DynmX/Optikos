@@ -1,5 +1,7 @@
 #include "ui/sdk/textBox.hpp"
 
+#include <tracy/Tracy.hpp>
+
 // TODO: VERY IMPORTANT main problem of some down in fps because of vector with symbols
 
 namespace Optikos
@@ -24,6 +26,8 @@ TextBox::TextBox(uint32_t width, uint32_t height, Vec2 position, Color bgColor, 
 
 void TextBox::render(IRenderQueue& renderQueue)
 {
+    ZoneScopedN("TextBox::render");
+
     if (!m_isVisible) return;
 
     DrawCommand bgCmd;
@@ -53,6 +57,8 @@ void TextBox::render(IRenderQueue& renderQueue)
 
 void TextBox::updateData()
 {
+    ZoneScopedN("TextBox::updateData");
+
     Color currentColor = m_bgColor;
     if (m_focused)
         currentColor = m_focusedBgColor;
@@ -152,6 +158,8 @@ bool TextBox::wantsGetInput() const
 
 void TextBox::passInput(unsigned int codepoint)
 {
+    ZoneScopedN("TextBox::passInput");
+
     manageCursor(codepoint);
 
     updateData();

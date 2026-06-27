@@ -22,6 +22,8 @@
 #define OPTIKOS_DEFAULT_FONT_PATH "res/fonts/"
 #endif
 
+#include <tracy/Tracy.hpp>
+
 #include "ui/UISystem.hpp"
 
 namespace Optikos
@@ -71,12 +73,14 @@ bool Optikos::should_close()
 
 void Optikos::begin()
 {
+    ZoneScopedN("Optikos::begin");
     m_renderer->beginFrame();
     m_uiSystem->render(m_renderer->getRenderQueue());
 }
 
 void Optikos::end()
 {
+    ZoneScopedN("Optikos::end");
     m_renderer->endFrame();
     m_renderer->swap_buffer();
     m_window->poll_events();

@@ -36,6 +36,7 @@ class Label : public Widget
     RenderData  m_data;
     std::string m_text;
     std::string m_fontName = DEFAULT0_FONT;
+    bool        m_dirty    = true;
 };
 
 }  // namespace Optikos

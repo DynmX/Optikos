@@ -4,6 +4,18 @@ project(Optikos LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(OPTIKOS_ENABLE_PROFILING "Enable Tracy profiler" OFF)
+set(TRACY_ENABLE ${OPTIKOS_ENABLE_PROFILING} CACHE BOOL "" FORCE)
+
+include(FetchContent)
+
+FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG        v0.13.1
+)
+FetchContent_MakeAvailable(tracy)
+
 set(OPTIKOS_RENDERER "OPENGL" CACHE STRING "Render backend")
 set_property(CACHE OPTIKOS_RENDERER PROPERTY STRINGS "OPENGL" "VULKAN" "NONE")
 
@@ -125,6 +137,13 @@ target_include_directories(Optikos PUBLIC
 )
 
 target_link_libraries(Optikos PUBLIC Freetype::Freetype)
+
+target_include_directories(Optikos PUBLIC ${tracy_SOURCE_DIR}/public)
+
+if(OPTIKOS_ENABLE_PROFILING)
+    target_link_libraries(Optikos PUBLIC Tracy::TracyClient)
+    target_compile_definitions(Optikos PUBLIC TRACY_ENABLE)
+endif()
 
 function(optikos_copy_resources TARGET)
     add_custom_command(TARGET ${TARGET} POST_BUILD
